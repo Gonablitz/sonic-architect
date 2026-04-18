@@ -1,0 +1,30 @@
+services:
+  # The Data Warehouse (PostgreSQL)
+  db_warehouse:
+    image: postgres:15
+    container_name: sonic_db
+    environment:
+      POSTGRES_USER: gmt_admin
+      POSTGRES_PASSWORD: neon_password
+      POSTGRES_DB: sonic_analytics
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  # The Processing Engine (Python)
+  sonic_engine:
+    build: .
+    env_file: .env
+    container_name: gmt_processor
+    volumes:
+      - .:/app
+    environment:
+      - SPOTIPY_CLIENT_ID=${SPOTIPY_CLIENT_ID}
+      - SPOTIPY_CLIENT_SECRET=${SPOTIPY_CLIENT_SECRET}
+    depends_on:
+      - db_warehouse
+    tty: true  # Keeps the container running so we can exec into it
+
+volumes:
+  postgres_data:
