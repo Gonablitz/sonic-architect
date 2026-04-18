@@ -5,11 +5,11 @@ from spotipy.oauth2 import SpotifyClientCredentials
 from rich.console import Console
 from dotenv import load_dotenv 
 
-# Load variables from .env file
+
 load_dotenv()
 console = Console()
 
-# Setup Connection
+
 auth_manager = SpotifyClientCredentials()
 sp = spotipy.Spotify(auth_manager=auth_manager)
 
@@ -69,5 +69,5 @@ def fetch_and_analyze(query):
 
     console.print(f"✅ Saved to [bold white]{filename}[/bold white]. The Sentinel will now take over!")
 
-# Test it
+
 fetch_and_analyze("The Weeknd Blinding Lights")

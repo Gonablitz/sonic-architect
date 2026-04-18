@@ -9,18 +9,16 @@ from visualize_sonic import generate_visuals
 console = Console()
 
 class AudioDropHandler(FileSystemEventHandler):
-    # ... (inside your AudioDropHandler class)
+    
     def on_created(self, event):
         if not event.is_directory and event.src_path.endswith('.mp3'):
             file_name = os.path.basename(event.src_path)
             
-            # --- NEW: Retrieve the URL if available ---
-            # For now, we'll pass None, but we need the ETL function 
-            # to at least expect the argument so it doesn't crash.
+            
             target_url = None 
             
             try:
-                # 1. Pass the URL to the ETL (requires updating load_to_db.py)
+                
                 run_etl_pipeline(file_name, video_url=target_url)
                 
                 # 2. Visualize
@@ -31,7 +29,7 @@ class AudioDropHandler(FileSystemEventHandler):
             except Exception as e:
                 console.print(f"[bold red]❌ Sentinel Error:[/bold red] {e}")
 if __name__ == "__main__":
-    path = "."  # Watch current directory
+    path = "." 
     event_handler = AudioDropHandler()
     observer = Observer()
     observer.schedule(event_handler, path, recursive=False)
