@@ -14,7 +14,7 @@ def generate_visuals(file_path):
     # Enhanced with CQT (Constant-Q Transform) for better musical pitch resolution
     chroma = librosa.feature.chroma_cqt(y=y, sr=sr)
     librosa.display.specshow(chroma, y_axis='chroma', x_axis='time', ax=ax1, cmap='magma')
-    ax1.set_title('🎼 Harmonic Content (Note Distribution)', fontsize=16, color='#00FFCC')
+    ax1.set_title('Harmonic Content (Note Distribution)', fontsize=16, color='#00FFCC')
     ax1.set_ylabel('Pitch Class')
 
     # --- 2. Power Spectral Density (The Mix Balance) ---
@@ -22,7 +22,7 @@ def generate_visuals(file_path):
     S = librosa.feature.melspectrogram(y=y, sr=sr, n_mels=128)
     S_dB = librosa.power_to_db(S, ref=np.max)
     img = librosa.display.specshow(S_dB, x_axis='time', y_axis='mel', sr=sr, ax=ax2, cmap='viridis')
-    ax2.set_title('🔊 Power Spectral Density (Frequency Weighting)', fontsize=16, color='#00FFCC')
+    ax2.set_title('Power Spectral Density (Frequency Weighting)', fontsize=16, color='#00FFCC')
     ax2.set_ylabel('Frequency (Hz)')
     
     plt.colorbar(img, ax=ax2, format="%+2.0f dB")

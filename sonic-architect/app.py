@@ -7,61 +7,21 @@ from sonic_harvester import harvest_audio
 from load_to_db import run_etl_pipeline
 from visualize_sonic import generate_visuals
 
-st.set_page_config(page_title="Sonic Architect Vault", layout="wide")
+# --- THEME & UI CONFIG ---
+st.set_page_config(page_title="Sonic Architect | Engineering Vault", layout="wide")
 
-# --- GLOBAL SEARCH SECTION ---
-st.sidebar.header("📡 Global Search")
-search_query = st.sidebar.text_input("Enter Song Name & Artist")
+# Custom CSS for a high-end Studio look
+st.markdown("""
+    <style>
+    .main { background-color: #0e1117; }
+    .stMetric { background-color: #1a1c24; padding: 15px; border-radius: 10px; border: 1px solid #00ffcc; }
+    </style>
+    """, unsafe_allow_html=True)
 
-if st.sidebar.button("Harvest & Analyze"):
-    if search_query:
-        with st.spinner(f"🛰️ Harvesting..."):
-            audio_file = harvest_audio(search_query) 
-            
-            
-            if audio_file:
-                st.sidebar.write(f"🔍 System found: {audio_file}")
-            else:
-                st.sidebar.error("❌ Harvester returned nothing. Check ffmpeg.")
-
-            if audio_file and os.path.exists(audio_file):
-                run_etl_pipeline(audio_file)
-                generate_visuals(audio_file)
-                st.rerun()
-    else:
-        st.sidebar.warning("Please enter a search term.")
-
-# --- SIDEBAR: UTILITIES ---
-st.sidebar.markdown("---")
-st.sidebar.header("⚙️ Vault Utilities")
-
-if st.sidebar.button("🗑️ Clear Vault History", type="secondary"):
-    try:
-        conn = sqlite3.connect('sonic_vault.db')
-        cursor = conn.cursor()
-        
-        # 1. Clear the SQL table
-        cursor.execute("DELETE FROM tracks_processed")
-        conn.commit()
-        conn.close()
-        
-        # 2. Cleanup local assets 
-        
-        for file in os.listdir("."):
-            if file.endswith(".png") or file.endswith(".mp3") or file.endswith(".mp4"):
-                os.remove(file)
-                
-        st.sidebar.success("Vault purged successfully!")
-        time.sleep(1)
-        st.rerun()
-        
-    except Exception as e:
-        st.sidebar.error(f"Purge failed: {e}")
 # --- DATA FETCHING ---
 def get_data():
     conn = sqlite3.connect('sonic_vault.db')
     cursor = conn.cursor()
-    
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS tracks_processed (
             track_title TEXT, artist_name TEXT, bpm REAL, 
@@ -70,76 +30,81 @@ def get_data():
         )
     """)
     conn.commit()
-    
     try:
         df = pd.read_sql_query("SELECT * FROM tracks_processed ORDER BY processed_at DESC", conn)
     except Exception:
-        
         df = pd.DataFrame(columns=["track_title", "artist_name", "bpm", "energy_score", "sub_bass_peak", "youtube_url", "processed_at"])
-    
     conn.close()
     return df
 
+# --- SIDEBAR: HARVESTER ---
+st.sidebar.title("🎚️ Engineering Console")
+search_query = st.sidebar.text_input("Source Track (Artist - Name)")
+
+if st.sidebar.button("Begin Sonic Extraction"):
+    if search_query:
+        with st.spinner("🛰️ Extracting audio streams and spectral data..."):
+            audio_file = harvest_audio(search_query) 
+            if audio_file and os.path.exists(audio_file):
+                run_etl_pipeline(audio_file)
+                generate_visuals(audio_file)
+                st.sidebar.success(f"✅ {search_query} Analyzed!")
+                st.rerun()
+            else:
+                st.sidebar.error("❌ Extraction failed. Check FFmpeg logs.")
+
+# --- MAIN UI ---
+st.title("🎧 Sonic Architect: Multimedia Vault")
 df = get_data()
 
-# --- . UI DYNAMIC INSPECTION AREA ---
-# --- i. INVENTORY TABLE ---
-st.markdown("### 📊 Audio Inventory")
-if not df.empty:
-    st.dataframe(df, use_container_width=True)
+if df.empty:
+    st.info("Vault offline. Please harvest a track to initialize spectral analysis.")
 else:
-    st.info("Vault is currently empty. Use the sidebar to harvest new audio data.")
-
-# --- ii. DYNAMIC INSPECTION & VIDEO STREAMING ---
-
-if not df.empty:
-    st.markdown("---")
-    st.markdown("### 🔍 Multimedia Inspection")
-
-    # 1. Selection
-    options = df['track_title'].unique()
-    selected_track = st.selectbox(
-        "Select a track to inspect:", 
-        options,
-        key="inspection_selector"
-    )
-
-    # 2. Extract specific track info safely
-    selection_filter = df[df['track_title'] == selected_track]
+    # 1. Selection & Header
+    selected_track = st.selectbox("Select Master Track:", df['track_title'].unique())
+    track_info = df[df['track_title'] == selected_track].iloc[0]
     
-    if not selection_filter.empty:
-        track_info = selection_filter.iloc[0]
+    file_base = selected_track.replace(" ", "_")
+    audio_path = f"{file_base}.mp3"
+    img_path = f"{file_base}.png"
 
-        # File naming logic
-        file_base = selected_track.replace(" ", "_")
-        audio_path = f"{file_base}.mp3"
-        img_path = f"{file_base}.png"
+    # 2. PRODUCER METRICS (Top Row)
+    m1, m2, m3, m4 = st.columns(4)
+    with m1:
+        st.metric("Tempo (BPM)", f"{track_info['bpm']:.1f}")
+    with m2:
+        st.metric("Sub-Bass Peak", f"{track_info['sub_bass_peak']:.1f} Hz")
+    with m3:
+        # Energy score repurposed as RMS Headroom/Loudness for the UI
+        st.metric("RMS Energy", f"{track_info['energy_score']:.2f} dBFS")
+    with m4:
+        st.metric("Analyzed At", track_info['processed_at'].split()[0])
 
-        # 3. Display Tabs
-        tab1, tab2, tab3 = st.tabs(["📊 Stats & Audio", "📺 Source Video", "📡 Sonar Scan"])
+    # 3. ANALYSIS TABS
+    tab1, tab2 = st.tabs(["📡 Spectral Analysis & Monitoring", "📺 Source Feed"])
 
-        with tab1:
-            col_l, col_r = st.columns(2)
-            with col_l:
-                if os.path.exists(audio_path):
-                    st.audio(audio_path)
-                else:
-                    st.error("Audio file missing.")
-            with col_r:
-                st.write(f"**BPM:** {track_info['bpm']:.1f}")
-                st.write(f"**Bass Peak:** {track_info['sub_bass_peak']:.1f} Hz")
-
-        with tab2:
-            yt_url = track_info.get('youtube_url')
-            
-            if yt_url and ("youtube.com" in str(yt_url) or "youtu.be" in str(yt_url)):
-                st.video(yt_url)
-            else:
-                st.warning("⚠️ Direct embed link not found.")
-                st.link_button("📺 Watch on YouTube", f"https://www.youtube.com/results?search_query={selected_track}")
-
-        with tab3:
+    with tab1:
+        col_img, col_audio = st.columns([2, 1])
+        with col_img:
             if os.path.exists(img_path):
-                st.image(img_path, use_column_width=True)
+                st.image(img_path, caption="Top: Chromagram (Pitch Class) | Bottom: Mel-Spectrogram (Energy Density)")
             else:
-                st.info("Sonar Scan visualization not generated for this track.")
+                st.warning("Spectral scan missing for this track.")
+        
+        with col_audio:
+            st.markdown("### 🎛️ Monitor Output")
+            if os.path.exists(audio_path):
+                st.audio(audio_path)
+                st.download_button("Download Master", data=open(audio_path, 'rb'), file_name=audio_path)
+            else:
+                st.error("Audio buffer empty.")
+            
+            st.markdown("---")
+            st.write("**Producer Notes:**")
+            st.caption("Inspect the bottom spectrogram for 'muddy' frequencies in the 200-500Hz range. The top Chromagram indicates key stability for potential sampling.")
+
+    with tab2:
+        if track_info['youtube_url'] and "http" in str(track_info['youtube_url']):
+            st.video(track_info['youtube_url'])
+        else:
+            st.link_button("View Source on YouTube", f"https://www.youtube.com/results?search_query={selected_track}")
