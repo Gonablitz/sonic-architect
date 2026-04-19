@@ -4,6 +4,8 @@ import pandas as pd
 import os
 import time
 from sonic_harvester import harvest_audio
+from load_to_db import run_etl_pipeline
+from visualize_sonic import generate_visuals
 
 st.set_page_config(page_title="Sonic Architect Vault", layout="wide")
 
@@ -13,11 +15,17 @@ search_query = st.sidebar.text_input("Enter Song Name & Artist")
 
 if st.sidebar.button("Harvest & Analyze"):
     if search_query:
-        with st.spinner(f"🛰️ Harvesting '{search_query}' from the web..."):
-            harvest_audio(search_query) # This drops the file
-            time.sleep(6) # Give the Sentinel background service time to work
-            st.sidebar.success(f"✅ {search_query} added to vault!")
-            st.rerun() 
+        with st.spinner(f"🛰️ Harvesting '{search_query}'..."):
+            
+            audio_file = harvest_audio(search_query) 
+            
+            
+            if audio_file and os.path.exists(audio_file):
+                run_etl_pipeline(audio_file)
+                generate_visuals(audio_file)
+                
+                st.sidebar.success(f"✅ {search_query} secured!")
+                st.rerun()
     else:
         st.sidebar.warning("Please enter a search term.")
 
