@@ -19,10 +19,15 @@ def harvest_audio(query):
         }],
         'outtmpl': f'./{file_name}.%(ext)s', 
         'quiet': True,
-        # THE BYPASS
         'nocheckcertificate': True,
-        'extractor_args': {'youtube': {'player_client': ['ios']}},
-        'user_agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1'
+        # PIVOT: Using web clients instead of iOS to avoid PO Token requirement
+        'extractor_args': {
+            'youtube': {
+                'player_client': ['web', 'mweb'],
+                'skip': ['dash', 'hls'] # Skip complex streaming formats
+            }
+        },
+        'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
     }
 
     try:
