@@ -7,6 +7,7 @@ console = Console()
 def harvest_audio(query):
     console.print(f"[bold cyan]🛰️ Initializing YouTube Fallback for:[/bold cyan] {query}")
     
+    file_name = query.replace(" ", "_") 
     
     ydl_opts = {
         'format': 'bestaudio/best',
@@ -15,16 +16,20 @@ def harvest_audio(query):
             'preferredcodec': 'mp3',
             'preferredquality': '192',
         }],
-        'outtmpl': f'{query.replace(" ", "_")}.%(ext)s',
+        'outtmpl': f'{file_name}.%(ext)s',
         'quiet': True,
     }
 
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download([f"ytsearch1:{query} audio"])
-        console.print(f"[bold green]✅ Harvested:[/bold green] {query}.mp3")
+        
+        expected_file = f"{file_name}.mp3"
+        console.print(f"[bold green]✅ Harvested:[/bold green] {expected_file}")
+        
+        
+        return expected_file
+        
     except Exception as e:
         console.print(f"[bold red]❌ Harvest Failed:[/bold red] {e}")
-
-
-harvest_audio("The Weeknd Blinding Lights")
+        return None
