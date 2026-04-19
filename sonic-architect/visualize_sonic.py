@@ -22,8 +22,7 @@ librosa.display.specshow(D, sr=sr, x_axis='time', y_axis='hz', cmap='magma')
 plt.title('Sonic Sentinel: Frequency Spectrogram', color='white')
 plt.colorbar(format='%+2.0f dB')
 
-# Styling for that Cyberpunk feel
-plt.tight_layout()
+lt.tight_layout()
 plt.style.use('dark_background')
 plt.savefig('sonic_analysis.png')
 print("✅ Visualization saved as 'sonic_analysis.png'!")

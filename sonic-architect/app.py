@@ -50,77 +50,87 @@ if st.sidebar.button("🗑️ Clear Vault History", type="secondary"):
 # --- DATA FETCHING ---
 def get_data():
     conn = sqlite3.connect('sonic_vault.db')
-    df = pd.read_sql_query("SELECT * FROM tracks_processed ORDER BY processed_at DESC", conn)
+    cursor = conn.cursor()
+    
+    # Ensure table exists so the SELECT query doesn't crash the app
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS tracks_processed (
+            track_title TEXT, artist_name TEXT, bpm REAL, 
+            energy_score REAL, sub_bass_peak REAL, 
+            youtube_url TEXT, processed_at TEXT
+        )
+    """)
+    conn.commit()
+    
+    try:
+        df = pd.read_sql_query("SELECT * FROM tracks_processed ORDER BY processed_at DESC", conn)
+    except Exception:
+        # Fallback columns if read fails
+        df = pd.DataFrame(columns=["track_title", "artist_name", "bpm", "energy_score", "sub_bass_peak", "youtube_url", "processed_at"])
+    
     conn.close()
     return df
 
 df = get_data()
 
-# --- 3. UI DYNAMIC INSPECTION AREA ---
-# Only show this section if the vault actually has tracks!
+# --- . UI DYNAMIC INSPECTION AREA ---
+# --- i. INVENTORY TABLE ---
+st.markdown("### 📊 Audio Inventory")
+if not df.empty:
+    st.dataframe(df, use_container_width=True)
+else:
+    st.info("Vault is currently empty. Use the sidebar to harvest new audio data.")
+
+# --- ii. DYNAMIC INSPECTION & VIDEO STREAMING ---
+
 if not df.empty:
     st.markdown("---")
     st.markdown("### 🔍 Multimedia Inspection")
+
+    # 1. Selection
+    options = df['track_title'].unique()
+    selected_track = st.selectbox(
+        "Select a track to inspect:", 
+        options,
+        key="inspection_selector"
+    )
+
+    # 2. Extract specific track info safely
+    selection_filter = df[df['track_title'] == selected_track]
     
-    selected_track = st.selectbox("Select a track to inspect:", df['track_title'].unique())
-    
-    # This line was causing the error because it ran even when the DB was empty
-    track_info = df[df['track_title'] == selected_track].iloc[0]
+    if not selection_filter.empty:
+        track_info = selection_filter.iloc[0]
 
-    # ... rest of your player/tabs code goes here ...
-else:
-    st.info("Vault is currently empty. Use the sidebar to harvest new audio data.")
-    
-    # 2. Inventory Table
-    st.markdown("### 📊 Audio Inventory")
-    st.dataframe(df, use_container_width=True)
+        # File naming logic
+        file_base = selected_track.replace(" ", "_")
+        audio_path = f"{file_base}.mp3"
+        img_path = f"{file_base}.png"
 
-    st.markdown("---")
+        # 3. Display Tabs
+        tab1, tab2, tab3 = st.tabs(["📊 Stats & Audio", "📺 Source Video", "📡 Sonar Scan"])
 
-# --- 3. DYNAMIC INSPECTION & VIDEO STREAMING ---
-st.markdown("---")
-st.markdown("### 🔍 Multimedia Inspection")
+        with tab1:
+            col_l, col_r = st.columns(2)
+            with col_l:
+                if os.path.exists(audio_path):
+                    st.audio(audio_path)
+                else:
+                    st.error("Audio file missing.")
+            with col_r:
+                st.write(f"**BPM:** {track_info['bpm']:.1f}")
+                st.write(f"**Bass Peak:** {track_info['sub_bass_peak']:.1f} Hz")
 
-selected_track = st.selectbox(
-    "Select a track to inspect:", 
-    df['track_title'].unique(),
-    key="inspection_selector"  # Add this unique ID
-)
+        with tab2:
+            yt_url = track_info.get('youtube_url')
+            
+            if yt_url and ("youtube.com" in str(yt_url) or "youtu.be" in str(yt_url)):
+                st.video(yt_url)
+            else:
+                st.warning("⚠️ Direct embed link not found.")
+                st.link_button("📺 Watch on YouTube", f"https://www.youtube.com/results?search_query={selected_track}")
 
-# Get the specific data for the selected track
-track_info = df[df['track_title'] == selected_track].iloc[0]
-
-# File naming logic
-file_base = selected_track.replace(" ", "_")
-audio_path = f"{file_base}.mp3"
-img_path = f"{file_base}.png"
-
-tab1, tab2, tab3 = st.tabs(["📊 Stats & Audio", "📺 Source Video", "📡 Sonar Scan"])
-
-with tab1:
-    col_l, col_r = st.columns(2)
-    with col_l:
-        if os.path.exists(audio_path):
-            st.audio(audio_path)
-        else:
-            st.error("Audio file missing.")
-    with col_r:
-        st.write(f"**BPM:** {track_info['bpm']:.1f}")
-        st.write(f"**Bass Peak:** {track_info['sub_bass_peak']:.1f} Hz")
-
-with tab2:
-    url_from_db = track_info.get('youtube_url')
-    
-    if url_from_db and "youtube.com" in url_from_db:
-        # Standard Streamlit video component for direct links
-        st.video(url_from_db)
-    else:
-        st.error("🔒 YouTube restricted this embed.")
-        # Create a direct link that opens in a new tab as a fallback
-        track_query = selected_track.replace("_", " ")
-        st.link_button("🚀 Open Video on YouTube", 
-                       f"https://www.youtube.com/results?search_query={track_query}+official+audio")
-
-with tab3:
-    if os.path.exists(img_path):
-        st.image(img_path, use_column_width=True)
+        with tab3:
+            if os.path.exists(img_path):
+                st.image(img_path, use_column_width=True)
+            else:
+                st.info("Sonar Scan visualization not generated for this track.")

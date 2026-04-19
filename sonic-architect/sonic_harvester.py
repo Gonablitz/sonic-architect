@@ -7,7 +7,7 @@ console = Console()
 def harvest_audio(query):
     console.print(f"[bold cyan]🛰️ Initializing YouTube Fallback for:[/bold cyan] {query}")
     
-    # Options for high-quality audio-only download
+    
     ydl_opts = {
         'format': 'bestaudio/best',
         'postprocessors': [{
@@ -26,5 +26,5 @@ def harvest_audio(query):
     except Exception as e:
         console.print(f"[bold red]❌ Harvest Failed:[/bold red] {e}")
 
-# Try harvesting a track the Spotify API blocked
+
 harvest_audio("The Weeknd Blinding Lights")
