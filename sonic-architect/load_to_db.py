@@ -10,17 +10,8 @@ console = Console()
 DB_URL = "sqlite:///sonic_vault.db"
 engine = create_engine(DB_URL)
 
-def run_etl_pipeline(file_path, video_url=None):
-    console.print(f"[bold cyan]🚀 Initializing Sonic Vault ETL:[/bold cyan] {file_path}")
-    
-    # Load and analyze audio
-    y, sr = librosa.load(file_path, sr=None)
-    
-    #  (tempo, beats)
-    tempo, _ = librosa.beat.beat_track(y=y, sr=sr)
-    rms = librosa.feature.rms(y=y)
-    centroid = librosa.feature.spectral_centroid(y=y, sr=sr)
-    
+def run_etl_pipeline(file_path):
+    # ... logic for tempo and centroid ...
     
     processed_data = {
         "track_title": file_path.split('.')[0].replace("_", " "),
@@ -28,17 +19,18 @@ def run_etl_pipeline(file_path, video_url=None):
         "bpm": round(float(tempo), 2),  
         "energy_score": round(float(np.mean(rms)), 4),
         "sub_bass_peak": round(float(np.mean(centroid)), 2),
-        "youtube_url": video_url,  
+        "youtube_url": "N/A",  
         "processed_at": pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S")
     }
+    
     
     df = pd.DataFrame([processed_data])
     
     try:
         df.to_sql('tracks_processed', engine, if_exists='append', index=False)
-        console.print(f"[bold green]✅ DATA SECURED FOR:[/bold green] {processed_data['track_title']}")
+        print(f"✅ Data secured for: {file_path}")
     except Exception as e:
-        console.print(f"[bold red]❌ LOAD FAILED:[/bold red] {e}")
+        print(f"❌ Load failed: {e}")
 
 # test
 if __name__ == "__main__":

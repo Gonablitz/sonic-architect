@@ -18,7 +18,7 @@ if st.sidebar.button("Harvest & Analyze"):
         with st.spinner(f"🛰️ Harvesting..."):
             audio_file = harvest_audio(search_query) 
             
-            # DEBUG LINE: This will tell us if the file actually exists on the cloud disk
+            
             if audio_file:
                 st.sidebar.write(f"🔍 System found: {audio_file}")
             else:
