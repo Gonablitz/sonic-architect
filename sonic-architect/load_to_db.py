@@ -11,15 +11,32 @@ DB_URL = "sqlite:///sonic_vault.db"
 engine = create_engine(DB_URL)
 
 def run_etl_pipeline(file_path):
-    # ... logic for tempo and centroid ...
+   def run_etl_pipeline(file_path):
+    y, sr = librosa.load(file_path)
+
+    # --- Advanced Audio Engineering Metrics ---
     
+    # 1. Perceived Loudness (LUFS approximation)
+    rms = librosa.feature.rms(y=y)
+    loudness_db = librosa.amplitude_to_db([np.mean(rms)], ref=np.max)[0]
+
+    # 2. Spectral Flatness (0.0 = Tonal/Musical, 1.0 = White Noise/Distortion)
+    flatness = np.mean(librosa.feature.spectral_flatness(y=y))
+
+    # 3. Harmonic vs Percussive Ratio (Producer's Balance)
+    y_harmonic, y_percussive = librosa.effects.hpss(y)
+    h_p_ratio = np.mean(y_harmonic) / np.mean(y_percussive)
+
+    # 4. Tempo & Rhythm Stability
+    tempo, _ = librosa.beat.beat_track(y=y, sr=sr)
+
     processed_data = {
-        "track_title": file_path.split('.')[0].replace("_", " "),
-        "artist_name": "Local Analysis",
-        "bpm": round(float(tempo), 2),  
-        "energy_score": round(float(np.mean(rms)), 4),
-        "sub_bass_peak": round(float(np.mean(centroid)), 2),
-        "youtube_url": "N/A",  
+        "track_title": file_path.replace(".mp3", "").replace("_", " "),
+        "bpm": round(float(tempo), 1),
+        "loudness_lufs": round(float(loudness_db), 2),
+        "timbre_texture": "Smooth" if flatness < 0.1 else "Aggressive/Noisy",
+        "tonal_purity": round(float(1 - flatness), 3),
+        "harmonic_bias": round(float(h_p_ratio), 2),
         "processed_at": pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S")
     }
     
