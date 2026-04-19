@@ -43,8 +43,8 @@ if st.sidebar.button("🗑️ Clear Vault History", type="secondary"):
         conn.commit()
         conn.close()
         
-        # 2. Cleanup local assets (Optional but recommended)
-        # This removes all .png and .mp3 files so your folder stays tidy
+        # 2. Cleanup local assets 
+        
         for file in os.listdir("."):
             if file.endswith(".png") or file.endswith(".mp3") or file.endswith(".mp4"):
                 os.remove(file)
@@ -60,7 +60,6 @@ def get_data():
     conn = sqlite3.connect('sonic_vault.db')
     cursor = conn.cursor()
     
-    # Ensure table exists so the SELECT query doesn't crash the app
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS tracks_processed (
             track_title TEXT, artist_name TEXT, bpm REAL, 
@@ -73,7 +72,7 @@ def get_data():
     try:
         df = pd.read_sql_query("SELECT * FROM tracks_processed ORDER BY processed_at DESC", conn)
     except Exception:
-        # Fallback columns if read fails
+        
         df = pd.DataFrame(columns=["track_title", "artist_name", "bpm", "energy_score", "sub_bass_peak", "youtube_url", "processed_at"])
     
     conn.close()
