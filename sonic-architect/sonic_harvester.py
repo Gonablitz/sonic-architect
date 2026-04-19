@@ -8,17 +8,18 @@ def harvest_audio(query):
     console.print(f"[bold cyan]🛰️ Initializing YouTube Fallback for:[/bold cyan] {query}")
     
     file_name = query.replace(" ", "_")
-ydl_opts = {
-    'format': 'bestaudio/best',
-    'postprocessors': [{
-        'key': 'FFmpegExtractAudio',
-        'preferredcodec': 'mp3',
-        'preferredquality': '192',
-    }],
     
-    'outtmpl': f'./{file_name}.%(ext)s', 
-    'quiet': True,
-}
+    
+    ydl_opts = {
+        'format': 'bestaudio/best',
+        'postprocessors': [{
+            'key': 'FFmpegExtractAudio',
+            'preferredcodec': 'mp3',
+            'preferredquality': '192',
+        }],
+        'outtmpl': f'./{file_name}.%(ext)s', 
+        'quiet': True,
+    }
 
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
